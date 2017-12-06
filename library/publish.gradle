@@ -1,0 +1,57 @@
+//https://github.com/bintray/gradle-bintray-plugin#readme
+
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
+
+Properties localProps = new Properties()
+localProps.load(new FileInputStream(file('./local.properties')))
+Properties publishProps = new Properties()
+publishProps.load(new FileInputStream(file('./publish.properties')))
+
+bintray {
+    user = localProps.getProperty('bintray_user')
+    key = localProps.getProperty('bintray_key')
+    publications = ['Production']
+
+    pkg {
+        repo = "maven"
+        name = publishProps.getProperty('ARTIFACT')
+        user = localProps.getProperty('bintray_user')
+        licenses = ['MIT']
+        vcsUrl = 'https://github.com/esparta-io/android-commons.git'
+        websiteUrl = 'https://github.com/esparta-io/android-commons'
+        issueTrackerUrl = 'https://github.com/esparta-io/android-commons/issues'
+        publish = true
+
+        version {
+            name = publishProps.getProperty('VERSION')
+            released  = new Date()
+            vcsTag = publishProps.getProperty('VERSION')
+        }
+    }
+}
+
+publishing {
+    publications {
+        Production(MavenPublication) {
+            artifact("$buildDir/outputs/aar/${publishProps.getProperty('ARTIFACT')}-${publishProps.getProperty('VERSION')}.aar")
+            groupId 'io.esparta'
+            artifactId publishProps.getProperty('ARTIFACT')
+            version publishProps.getProperty('VERSION')
+
+            //The publication doesn't know about our dependencies, so we have to manually add them to the pom
+            pom.withXml {
+                def dependenciesNode = asNode().appendNode('dependencies')
+
+                //Iterate over the compile dependencies (we don't want the test ones), adding a <dependency> node for each
+                configurations.compile.allDependencies.each {
+                    def dependencyNode = dependenciesNode.appendNode('dependency')
+                    dependencyNode.appendNode('groupId', it.group)
+                    dependencyNode.appendNode('artifactId', it.name)
+                    dependencyNode.appendNode('version', it.version)
+                }
+            }
+        }
+    }
+}

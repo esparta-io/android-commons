@@ -1,22 +1,18 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'maven'
-apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray'
-
-//https://github.com/bintray/gradle-bintray-plugin#readme
-
-def versionNameLabel = "0.1"
-def artifactIdLabel = "android-commons-test"
+apply from: './publish.gradle'
 
 android {
+    Properties publishProps = new Properties()
+    publishProps.load(new FileInputStream(file('./publish.properties')))
+
     compileSdkVersion 26
 
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 26
         versionCode 1
-        versionName versionNameLabel
+        versionName publishProps.getProperty('VERSION')
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
@@ -29,11 +25,12 @@ android {
         }
     }
 
+    //renaming .aar
     libraryVariants.all { variant ->
         variant.outputs.all { output ->
             def outputFile = output.outputFile
             if (outputFile != null && outputFile.name.endsWith('.aar')) {
-                def fileName = "${artifactIdLabel}-${versionNameLabel}.aar"
+                def fileName = "${publishProps.getProperty('ARTIFACT')}-${publishProps.getProperty('VERSION')}.aar"
                 outputFileName = new File(fileName)
             }
         }
@@ -65,54 +62,4 @@ repositories {
     mavenLocal()
     mavenCentral()
     jcenter()
-}
-
-Properties localProps = new Properties()
-localProps.load(new FileInputStream(file('./local.properties')))
-
-bintray {
-    user = localProps.getProperty('bintray_user')
-    key = localProps.getProperty('bintray_key')
-    publications = ['Production']
-
-    pkg {
-        repo = "maven"
-        name = artifactIdLabel
-        user = localProps.getProperty('bintray_user')
-        licenses = ['MIT']
-        vcsUrl = 'https://github.com/esparta-io/android-commons.git'
-        websiteUrl = 'https://github.com/esparta-io/android-commons'
-        issueTrackerUrl = 'https://github.com/esparta-io/android-commons/issues'
-        publish = true
-
-        version {
-            name = versionNameLabel
-            released  = new Date()
-            vcsTag = versionNameLabel
-        }
-    }
-}
-
-publishing {
-    publications {
-        Production(MavenPublication) {
-            artifact("$buildDir/outputs/aar/${artifactIdLabel}-${versionNameLabel}.aar")
-            groupId 'io.esparta'
-            artifactId artifactIdLabel
-            version versionNameLabel
-
-            //The publication doesn't know about our dependencies, so we have to manually add them to the pom
-            pom.withXml {
-                def dependenciesNode = asNode().appendNode('dependencies')
-
-                //Iterate over the compile dependencies (we don't want the test ones), adding a <dependency> node for each
-                configurations.compile.allDependencies.each {
-                    def dependencyNode = dependenciesNode.appendNode('dependency')
-                    dependencyNode.appendNode('groupId', it.group)
-                    dependencyNode.appendNode('artifactId', it.name)
-                    dependencyNode.appendNode('version', it.version)
-                }
-            }
-        }
-    }
 }
