@@ -1,4 +1,4 @@
-package riodepremios.com.br.app.ui.component
+package io.esparta.library.ui.recyclerview
 
 import android.content.Context
 import android.graphics.PointF
@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.properties.Delegates
 
 /**
+ *
  * Created by gmribas on 12/07/17.
  */
 class LinearLayoutManagerWithSmoothScroller: LinearLayoutManager {

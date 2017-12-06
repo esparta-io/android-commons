@@ -15,7 +15,7 @@ bintray {
     publications = ['Production']
 
     pkg {
-        repo = "maven"
+        repo = publishProps.getProperty('REPO')
         name = publishProps.getProperty('ARTIFACT')
         user = localProps.getProperty('bintray_user')
         licenses = ['MIT']
