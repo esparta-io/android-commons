@@ -1,16 +1,22 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
+
+//https://github.com/bintray/gradle-bintray-plugin#readme
+
+def versionNameLabel = "0.1"
+def artifactIdLabel = "android-commons-test"
 
 android {
     compileSdkVersion 26
-
-
 
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 26
         versionCode 1
-        versionName "1.0"
+        versionName versionNameLabel
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
@@ -23,6 +29,15 @@ android {
         }
     }
 
+    libraryVariants.all { variant ->
+        variant.outputs.all { output ->
+            def outputFile = output.outputFile
+            if (outputFile != null && outputFile.name.endsWith('.aar')) {
+                def fileName = "${artifactIdLabel}-${versionNameLabel}.aar"
+                outputFileName = new File(fileName)
+            }
+        }
+    }
 }
 
 def supportVersion = "26.1.0"
@@ -35,20 +50,69 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.2.0"
-    compile "com.android.support:appcompat-v7:$supportVersion"
-    compile "com.android.support:recyclerview-v7:$supportVersion"
-    compile "com.android.support:design:$supportVersion"
-    compile "net.danlew:android.joda:2.9.9"
-    compile "com.google.code.gson:gson:2.8.1"
-    compile 'com.github.rtoshiro.mflibrary:mflibrary:1.0.0'
-    compile "com.terrakok.phonematter:phonematter:1.0@aar"
-    compile "com.jakewharton.timber:timber:4.5.1"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.2.0"
+    implementation "com.android.support:appcompat-v7:$supportVersion"
+    implementation "com.android.support:recyclerview-v7:$supportVersion"
+    implementation "com.android.support:design:$supportVersion"
+    implementation "net.danlew:android.joda:2.9.9"
+    implementation "com.google.code.gson:gson:2.8.1"
+    implementation 'com.github.rtoshiro.mflibrary:mflibrary:1.0.0'
+    implementation "com.terrakok.phonematter:phonematter:1.0@aar"
+    implementation "com.jakewharton.timber:timber:4.5.1"
 }
 
 repositories {
     mavenLocal()
     mavenCentral()
     jcenter()
-    maven { url "https://dl.bintray.com/terrakok/terramaven" }
+}
+
+Properties localProps = new Properties()
+localProps.load(new FileInputStream(file('./local.properties')))
+
+bintray {
+    user = localProps.getProperty('bintray_user')
+    key = localProps.getProperty('bintray_key')
+    publications = ['Production']
+
+    pkg {
+        repo = "maven"
+        name = artifactIdLabel
+        user = localProps.getProperty('bintray_user')
+        licenses = ['MIT']
+        vcsUrl = 'https://github.com/esparta-io/android-commons.git'
+        websiteUrl = 'https://github.com/esparta-io/android-commons'
+        issueTrackerUrl = 'https://github.com/esparta-io/android-commons/issues'
+        publish = true
+
+        version {
+            name = versionNameLabel
+            released  = new Date()
+            vcsTag = versionNameLabel
+        }
+    }
+}
+
+publishing {
+    publications {
+        Production(MavenPublication) {
+            artifact("$buildDir/outputs/aar/${artifactIdLabel}-${versionNameLabel}.aar")
+            groupId 'io.esparta'
+            artifactId artifactIdLabel
+            version versionNameLabel
+
+            //The publication doesn't know about our dependencies, so we have to manually add them to the pom
+            pom.withXml {
+                def dependenciesNode = asNode().appendNode('dependencies')
+
+                //Iterate over the compile dependencies (we don't want the test ones), adding a <dependency> node for each
+                configurations.compile.allDependencies.each {
+                    def dependencyNode = dependenciesNode.appendNode('dependency')
+                    dependencyNode.appendNode('groupId', it.group)
+                    dependencyNode.appendNode('artifactId', it.name)
+                    dependencyNode.appendNode('version', it.version)
+                }
+            }
+        }
+    }
 }
