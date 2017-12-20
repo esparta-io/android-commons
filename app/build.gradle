@@ -28,13 +28,13 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
-//    implementation project(':library')
-    implementation 'io.esparta:android-commons-test:0.1'
+    implementation project(':library')
+//    implementation 'io.esparta:android-commons-test:0.1'
 
     implementation "com.android.support:appcompat-v7:$supportVersion"
     implementation "com.android.support:recyclerview-v7:$supportVersion"
     implementation "com.android.support:design:$supportVersion"
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.2.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.2.0"
 }
 repositories {
     mavenLocal()
