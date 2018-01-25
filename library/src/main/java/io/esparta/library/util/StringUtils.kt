@@ -121,7 +121,17 @@ fun splitNameLastName(nameToSplit: String): Pair<String, String> {
 fun phoneWatcher(editText: EditText): TextWatcher {
     return object : TextWatcher {
 
-        var lastEdit: String? = null
+        private var lastEdit: String? = null
+
+        private var maxLength = -1
+
+        init {
+            editText.filters?.map {
+                if (it is InputFilter.LengthFilter) {
+                    maxLength = it.max
+                }
+            }
+        }
 
         override fun afterTextChanged(editable: Editable?) {
             editable?.let {
@@ -129,7 +139,11 @@ fun phoneWatcher(editText: EditText): TextWatcher {
                     lastEdit = formatBrazilianPhoneNumber(editText.context, it.toString())
                     editText.removeTextChangedListener(this)
                     editText.setText(lastEdit)
-                    lastEdit?.let { editText.setSelection(it.length) }
+                    lastEdit?.let {
+                        //we have to check if maxLength was set
+                        val selection = if (it.length <= maxLength || maxLength == -1) it.length else editText.text.length
+                        editText.setSelection(selection)
+                    }
                     editText.addTextChangedListener(this)
                 }
             }
